@@ -1,12 +1,25 @@
 CC := g++
 INC := -I ZAPD -I lib/assimp/include -I lib/elfio -I lib/json/include -I lib/stb -I lib/tinygltf -I lib/libgfxd -I lib/tinyxml2
-CFLAGS := -g -g3 -fpic -Wl,-export-dynamic -std=c++17 -O2 -rdynamic
-LDFLAGS := -ldl
-UNAME := $(shell uname)
+CFLAGS += -g3 -ggdb -fpic -std=c++17 -Wall -fno-omit-frame-pointer
 
-FS_INC =
+ifeq ($(OPTIMIZATION_ON),0)
+  CFLAGS += -O0
+else
+  CFLAGS += -O2
+endif
+ifneq ($(ASAN),0)
+  CFLAGS += -fsanitize=address
+endif
+ifneq ($(DEPRECATION_OFF),0)
+  CFLAGS += -DDEPRECATION_OFF
+endif
+# CFLAGS += -DTEXTURE_DEBUG
+
+LDFLAGS := -lstdc++ -lm -ldl -lpng
+
+UNAME := $(shell uname)
 ifneq ($(UNAME), Darwin)
-    FS_INC += -lstdc++fs
+    LDFLAGS += -Wl,-export-dynamic -lstdc++fs
 endif
 
 SRC_DIRS := ZAPD ZAPD/ZRoom ZAPD/ZRoom/Commands ZAPD/Overlays ZAPD/HighLevel ZAPD/OpenFBX
@@ -27,10 +40,10 @@ clean:
 rebuild: clean all
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) $(INC) -c $< -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
 ZAPD/Main.o: genbuildinfo ZAPD/Main.cpp
-	$(CC) $(CFLAGS) $(INC) -c ZAPD/Main.cpp -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(INC) -c ZAPD/Main.cpp -o $@
 
 lib/libgfxd/libgfxd.a:
 	$(MAKE) -C lib/libgfxd -j
